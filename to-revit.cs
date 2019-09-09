@@ -6,18 +6,7 @@ using System.Text.RegularExpressions;
 using Autodesk.Revit.ApplicationServices;
 using Autodesk.Revit.DB;
 using DesignAutomationFramework;
-// Includes: DesignAutomationData:
-//      DesignAutomationData data
-//          Application rvtApp = data.RevitApp;
-//              Document newDoc = rvtApp.NewProjectDocument(UnitSystem.Imperial);
-//      XYZ
-//      Curve
-//      Line, Line.createBound
-//      Transaction
-//      Wall, Wall.Create
-//      Level, Level.Create
-// 
-// namespace SketchIt
+
 namespace RevitConversion
 {
    [Autodesk.Revit.Attributes.Regeneration(Autodesk.Revit.Attributes.RegenerationOption.Manual)]
