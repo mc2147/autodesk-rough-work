@@ -84,11 +84,11 @@ namespace RevitConversion
             Document targetDoc, 
             // *** REQUIRES REVIT:
             List<Curve> curves_list, 
-            int levelIndex
+            Id levelId
         ) {
             foreach (Curve _curve in curves_list) {                
                 // *** REQUIRES REVIT:
-                Wall.Create(targetDoc, _curve, levelIndex, false);
+                Wall.Create(targetDoc, _curve, levelId, false);
             }
         }
         public void createRVTFile(DesignAutomationData data) {
@@ -99,7 +99,30 @@ namespace RevitConversion
             Document newDoc = rvtApp.NewProjectDocument(UnitSystem.Imperial);
             if (newDoc == null) { throw new InvalidOperationException("Could not create new document."); }
             // 
-            string filePath = "sketchIt.rvt";
+            string filePath = "sketchIt.rvt";             
+            // *** LOOP THROUGH BUILDING LEVELS ***
+            int levelIndex = 0;
+            var level_IDs = new Dictionary<int, Id>();
+            // 
+            var colored_level_IDs = new Dictionary<Id, Color>();
+            // 
+            foreach (LevelObject _level in levels) {
+                decimal _elevation = _level.elevation;
+                Console.WriteLine("_elevation: " + _elevation);
+                // *** REQUIRES REVIT:
+                Level revitLevel = Level.Create(newDoc, _level.elevation);
+                if (revitLevel == null) {
+                    throw new Exception("Create a new level failed.");
+                }
+                revitLevel.Name = "Level " + levelIndex;
+                if (_level.has_category) {
+                    string _category = _level.category;
+                    Console.WriteLine("_category: " + _category);
+                    revitLevel.Category = _level.category;
+                }                
+                level_IDs[levelIndex] = revitLevel.Id;
+                levelIndex++;
+            }   
             // *** LOOP THROUGH BUILDING WALLS ***
             int wallIndex = 0;
             foreach (WallObject _wall in walls) {
@@ -110,7 +133,7 @@ namespace RevitConversion
                 int maxCoordIndex = coordCount - 1;
                 // *** DEFINE LIST OF CURVES FOR EACH WALL ***
                 List<Curve> wall_curves = new List<Curve>();
-                int levelID = _wall.level;
+                int wallLevelIndex = _wall.level;
                 //
                 foreach (Coordinate wall_coord in wall_coords) {
                     Coordinate startCoord = new Coordinate(0, 0);
@@ -140,29 +163,18 @@ namespace RevitConversion
                 using (Transaction wallTrans = new Transaction(newDoc, "Create some walls"))
                 {
                     wallTrans.Start();
-                    this.createRVTWalls(newDoc, wall_curves, levelID);
+                    this.createRVTWalls(newDoc, wall_curves, level_IDs[wallLevelIndex]);
                     wallTrans.Commit();
                 }                    
-            }            
-            // *** LOOP THROUGH BUILDING LEVELS ***
-            int levelIndex = 0;
-            foreach (LevelObject _level in levels) {
-                decimal _elevation = _level.elevation;
-                Console.WriteLine("_elevation: " + _elevation);
-                // *** REQUIRES REVIT:
-                Level revitLevel = Level.Create(newDoc, _level.elevation);
-                if (revitLevel == null) {
-                    throw new Exception("Create a new level failed.");
-                }
-                revitLevel.Name = "Level " + levelIndex;
-                if (_level.has_category) {
-                    string _category = _level.category;
-                    Console.WriteLine("_category: " + _category);
-                    revitLevel.Category = _level.category;
-                }                
-                levelIndex++;
+            }                                
+            // *** SAVE NEW DOC
+            newDoc.SaveAs(filePath);
+
+            foreach(var kvp in level_IDs) {
+                Color _color = new Color(100, 150, 200);
+                newDoc.ActiveView.set_ProjColorOverrideByElement(kvp.value, _color);
             }
-             newDoc.SaveAs(filePath);
+
         }
     }
     public class Program
